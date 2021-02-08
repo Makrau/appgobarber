@@ -1,4 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+} from 'react';
 import { TextInputProps } from 'react-native';
 import { useField } from '@unform/core';
 import { Container, TextInput, Icon } from './styles';
@@ -12,17 +17,30 @@ interface InputValueReference {
   value: string;
 }
 
-const Input: React.FC<InputProps> = ({ name, icon, placeholder }) => {
-  const { registerField, defaultValue = '', fieldName, error } = useField(name);
+interface InputRef {
+  focus(): void;
+}
+
+const Input: React.ForwardRefRenderFunction<InputRef, InputProps> = (
+  { name, icon, ...remainingProps },
+  ref,
+) => {
+  const { registerField, defaultValue = '', fieldName } = useField(name);
   const inputElementRef = useRef<any>(null);
   const inputValueRef = useRef<InputValueReference>({ value: defaultValue });
+
+  useImperativeHandle(ref, () => ({
+    focus() {
+      inputElementRef.current.focus();
+    },
+  }));
 
   useEffect(() => {
     registerField<string>({
       name: fieldName,
       ref: inputValueRef.current,
       path: 'value',
-      setValue(ref: any, value) {
+      setValue(_: any, value) {
         inputValueRef.current.value = value;
         inputElementRef.current.setNativeProps({ text: value });
       },
@@ -41,14 +59,14 @@ const Input: React.FC<InputProps> = ({ name, icon, placeholder }) => {
         ref={inputElementRef}
         keyboardAppearance="dark"
         placeholderTextColor="#666360"
-        placeholder={placeholder}
         defaultValue={defaultValue}
         onChangeText={value => {
           inputValueRef.current.value = value;
         }}
+        {...remainingProps}
       />
     </Container>
   );
 };
 
-export default Input;
+export default forwardRef(Input);
